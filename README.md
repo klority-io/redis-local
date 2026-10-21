@@ -1,9 +1,12 @@
-# redis-win 🚀
+# redis-local 🚀
 
-> **Ultra-lightweight Redis replacement for Windows, macOS, and Linux.**  
-> Built for developers who can't install Docker or WSL2. Run instantly with `npx redis-win`.
+> **Ultra-lightweight Redis replacement for local development on Windows, macOS, and Linux.**  
+> Built for developers who want instant Redis without Docker or WSL2. Run instantly with `npx redis-local` (or `npx redis-win`).
+>
+> ⚡ **Maintained with ❤️ by [Klority](https://www.klority.com)** — *The Unified Engineering Workspace.*
 
-[![CI](https://github.com/shanmuganathanvel/redis-win/actions/workflows/ci.yml/badge.svg)](https://github.com/shanmuganathanvel/redis-win/actions/workflows/ci.yml)
+[![Maintained by Klority](https://img.shields.io/badge/Maintained%20by-Klority.com-6366f1.svg)](https://www.klority.com)
+[![CI](https://github.com/klority-io/redis-local/actions/workflows/ci.yml/badge.svg)](https://github.com/klority-io/redis-local/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)](https://nodejs.org)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)](#)
 [![Zero C++ Compilers](https://img.shields.io/badge/native%20build%20tools-none-orange.svg)](#)
@@ -11,16 +14,26 @@
 
 ---
 
-## 💡 Why redis-win?
+## 💡 Why redis-local?
 
-On Windows machines, running standard Redis is notoriously painful:
+Running standard Redis locally is notoriously painful, especially on Windows and resource-constrained environments:
 - 🚫 **Docker Desktop** is heavy, eats 3–5 GB of RAM, and requires WSL2 / Hyper-V virtualization (often locked down on corporate laptops).
 - 🚫 **Official Redis** does not provide native Windows binaries (Microsoft's archive is abandoned since Redis 3.x).
 - 🚫 **Native C++ Addons** require `windows-build-tools`, Python, and Visual Studio compilers, which frequently fail during installation.
 
+### 🏢 The Klority Story: Why We Built This
+
+At **[Klority](https://www.klority.com)**, our mission is to eliminate engineering friction. While building features that rely on background jobs, queues, and caching (such as BullMQ), our engineers and open-source contributors consistently hit a wall on Windows environments:
+
+- Standard Redis has no official modern Windows distribution.
+- Running Docker Desktop consumes 4GB+ of system memory and requires WSL2 / Hyper-V virtualization, which is frequently restricted on corporate IT laptops.
+- Native C++ addons fail to build without heavy Microsoft Visual Studio and Python toolchains.
+
+To eliminate this friction once and for all, we created **`redis-local`** as an open-source gift to the developer community: a standalone, zero-dependency Node.js and WebAssembly implementation that starts in milliseconds, uses under 35 MB of RAM, and runs seamlessly with `npx redis-local`.
+
 ### The Solution:
-**redis-win** is a standalone, lightweight Redis server that runs directly on Node.js:
-- ⚡ **Instant Execution**: Run `npx redis-win` — starts in under 1 second.
+**redis-local** is a standalone, lightweight Redis server that runs directly on Node.js:
+- ⚡ **Instant Execution**: Run `npx redis-local` — starts in under 1 second.
 - 🪶 **Minimal Footprint**: Uses only ~25–35 MB of RAM.
 - 🔌 **Drop-in Compatibility**: Speaks standard RESP (Redis Serialization Protocol) on TCP port 6379.
 - 🦾 **Full BullMQ Support**: Built-in WebAssembly Lua engine (`wasmoon`) with `cjson` and `cmsgpack` so modern queue libraries like BullMQ work out of the box.
@@ -33,31 +46,34 @@ On Windows machines, running standard Redis is notoriously painful:
 
 ### 1. Run immediately via `npx` (No installation needed)
 ```bash
+npx redis-local
+# or alternatively:
 npx redis-win
 ```
 
 ### 2. Or install globally
 ```bash
-npm install -g redis-win
-redis-win
+npm install -g redis-local
+redis-local
 ```
 
 Upon launching, you will see the startup banner:
 ```text
                 _._                                                  
            _.-""\\\"""-._                                          
-      _.-""\\\\\\""-._        redis-win v1.0.0                 
+      _.-""\\\\\\""-._        redis-local v1.0.0                 
  .-"\\\\\\\\\\"-._     Port: 6379                             
 |\\\\\\\\\\\\|    PID:  12345                              
 |\\\\\\\\\\\\|                                                 
 |\\\\\\\\\\\\|    Zero-dependency Redis replacement            
- '-._\\\\\\\\\\_.-'    Ready to accept connections                  
-     '-._\\\\\\_.-'                                               
+ '-._\\\\\\\\\\_.-'    Maintained by Klority (https://www.klority.com)  
+     '-._\\\\\\_.-'    Ready to accept connections                  
          '-._\\\_.-'                                                   
              `-.\`                                                   
 
-[redis-win] Listening on 127.0.0.1:6379
-[redis-win] Snapshot persistence enabled: ./redis-dump.json
+[redis-local] Listening on 127.0.0.1:6379
+[redis-local] Maintained by Klority • https://www.klority.com
+[redis-local] Snapshot persistence enabled: ./redis-dump.json
 ```
 
 ---
@@ -65,7 +81,7 @@ Upon launching, you will see the startup banner:
 ## 🛠️ CLI Options
 
 ```bash
-redis-win [options]
+redis-local [options]
 ```
 
 | Option | Shorthand | Description | Default |
@@ -82,23 +98,23 @@ redis-win [options]
 ### Examples
 ```bash
 # Start server with persistence enabled by default
-npx redis-win
+npx redis-local
 
 # Run purely in-memory (no disk writes, ideal for CI/tests)
-npx redis-win --no-save
+npx redis-local --no-save
 
 # Run with custom snapshot file location
-npx redis-win --save ./data/my-dump.json
+npx redis-local --save ./data/my-dump.json
 
 # Run on custom port with password authentication
-npx redis-win --port 6380 --auth mysecretpassword
+npx redis-local --port 6380 --auth mysecretpassword
 ```
 
 ---
 
 ## 💾 Persistence Across Restarts
 
-`redis-win` includes built-in snapshot persistence enabled by default:
+`redis-local` includes built-in snapshot persistence enabled by default:
 - **On Startup**: Automatically loads and restores all keys, hashes, lists, sets, sorted sets, and remaining TTL expiry timers from `./redis-dump.json`.
 - **While Running**: Automatically saves a snapshot every 60 seconds in the background.
 - **On Shutdown (`Ctrl + C`)**: Flushes all in-memory data to disk before exiting.
@@ -114,7 +130,7 @@ npx redis-win --port 6380 --auth mysecretpassword
 ## 🔌 Connecting from Applications
 
 ### 1. Node.js with BullMQ (Background Job Queues)
-Because `redis-win` includes a WebAssembly Lua engine with `cmsgpack` and `cjson`, **BullMQ works seamlessly**:
+Because `redis-local` includes a WebAssembly Lua engine with `cmsgpack` and `cjson`, **BullMQ works seamlessly**:
 
 ```javascript
 const { Queue, Worker } = require('bullmq');
@@ -250,13 +266,23 @@ All 35 automated tests cover:
 
 ---
 
+## 🏢 About Klority
+
+`redis-local` is built and maintained with ❤️ by **[Klority](https://www.klority.com)**.
+
+Klority is a unified engineering workspace that combines **Agile Project Management**, **Wiki & Technical Docs**, **QA & Test Management**, and **CRM** into a single, high-performance platform. We help engineering teams eliminate fragmented tool stacks (Jira, Confluence, TestRail) and ship faster.
+
+👉 **[Discover Klority at www.klority.com](https://www.klority.com)**
+
+---
+
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome!  
-Feel free to check out the [issues page](https://github.com/shanmuganathanvel/redis-win/issues).
+Feel free to check out the [issues page](https://github.com/klority-io/redis-local/issues).
 
 ---
 
 ## 📄 License
 
-MIT © [Shanmuganathan Palanivel](https://github.com/shanmuganathanvel)
+MIT © [Klority](https://www.klority.com) & [Shanmuganathan Palanivel](https://github.com/shanmuganathanvel)

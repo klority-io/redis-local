@@ -1,9 +1,10 @@
 {
-  "name": "redis-win",
+  "name": "redis-local",
   "version": "1.0.0",
-  "description": "Ultra-lightweight Redis replacement for Windows with BullMQ, Lua scripting, Streams, and auto-persistence via npm/npx. Zero C++ build tools required.",
+  "description": "Ultra-lightweight Redis replacement for local development (Windows, macOS, Linux) with BullMQ, Lua scripting, Streams, and auto-persistence via npm/npx. Zero Docker required.",
   "main": "src/server.js",
   "bin": {
+    "redis-local": "bin/redis-local.js",
     "redis-win": "bin/redis-win.js"
   },
   "files": [
@@ -13,17 +14,21 @@
     "LICENSE"
   ],
   "scripts": {
-    "start": "node bin/redis-win.js",
+    "start": "node bin/redis-local.js",
     "test": "node --test"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shanmuganathanvel/redis-win.git"
+    "url": "git+https://github.com/klority-io/redis-local.git"
   },
   "keywords": [
     "redis",
+    "redis-local",
     "redis-server",
+    "redis-win",
     "windows",
+    "macos",
+    "linux",
     "in-memory",
     "cache",
     "resp",
@@ -31,14 +36,19 @@
     "lua",
     "streams",
     "lightweight",
-    "npx"
+    "npx",
+    "klority",
+    "developer-tools"
   ],
-  "author": "Shanmuganathan Palanivel",
+  "author": "Klority <support@klority.com> (https://www.klority.com)",
+  "contributors": [
+    "Shanmuganathan Palanivel <shanmuganathan@vellsoft.in> (https://github.com/shanmuganathanvel)"
+  ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/shanmuganathanvel/redis-win/issues"
+    "url": "https://github.com/klority-io/redis-local/issues"
   },
-  "homepage": "https://github.com/shanmuganathanvel/redis-win#readme",
+  "homepage": "https://www.klority.com",
   "engines": {
     "node": ">=16.0.0"
   },
