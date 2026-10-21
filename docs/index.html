@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>redis-local — Instant Local Redis without Docker or WSL2</title>
+  <meta name="description" content="Ultra-lightweight Redis replacement for local development on Windows, macOS, and Linux. Built with pure Node.js and WebAssembly. Zero Docker, zero C++ compilers required.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  
+  <!-- Open Graph / Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="redis-local — Instant Local Redis for Modern Developers">
+  <meta property="og:description" content="Run a full-featured Redis server in milliseconds with npx redis-local. Zero Docker, zero WSL2, zero C++ build tools.">
+  <meta property="og:image" content="https://www.klority.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0B0E14;
+      --bg-card: #121620;
+      --bg-card-hover: #181d2a;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(20, 184, 166, 0.4);
+      --primary: #14b8a6;
+      --primary-hover: #0d9488;
+      --primary-glow: rgba(20, 184, 166, 0.25);
+      --indigo: #6366f1;
+      --indigo-glow: rgba(99, 102, 241, 0.25);
+      --text-main: #F1F5F9;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      --danger: #ef4444;
+      --success: #10b981;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient background glows */
+    .bg-glow-top {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1000px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(20, 184, 166, 0.12) 0%, rgba(99, 102, 241, 0.08) 50%, transparent 70%);
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(11, 14, 20, 0.8);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 70px;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .logo-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--indigo) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+
+    .logo-text {
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(20, 184, 166, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(20, 184, 166, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-github {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-github:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-klority {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, var(--primary) 0%, #0d9488 100%);
+      color: #042f2e;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 10px var(--primary-glow);
+    }
+
+    .btn-klority:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+    }
+
+    .hero-badge-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(20, 184, 166, 0.1);
+      border: 1px solid rgba(20, 184, 166, 0.25);
+      font-size: 0.85rem;
+      color: var(--primary);
+      margin-bottom: 24px;
+    }
+
+    .hero-badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 8px var(--primary);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #FFFFFF 30%, var(--primary) 80%, #99f6e4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 auto 36px;
+      font-weight: 400;
+    }
+
+    /* Command Copy Box */
+    .command-box-wrap {
+      max-width: 580px;
+      margin: 0 auto 36px;
+      position: relative;
+    }
+
+    .command-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #090C11;
+      border: 1px solid rgba(20, 184, 166, 0.4);
+      box-shadow: 0 0 30px rgba(20, 184, 166, 0.15), 0 8px 24px rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      padding: 14px 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .command-box:hover {
+      border-color: var(--primary);
+      box-shadow: 0 0 40px rgba(20, 184, 166, 0.25);
+    }
+
+    .command-text {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .command-prompt {
+      color: var(--text-dim);
+      user-select: none;
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+    }
+
+    .copy-btn.copied {
+      background: var(--primary);
+      color: #042f2e;
+      border-color: var(--primary);
+    }
+
+    .platforms-list {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      margin-bottom: 60px;
+    }
+
+    .platform-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Terminal Preview */
+    .terminal-window {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #080B10;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .terminal-header {
+      background: #11151D;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background: #FF5F56; }
+    .dot-yellow { background: #FFBD2E; }
+    .dot-green { background: #27C93F; }
+
+    .terminal-title {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    .terminal-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .terminal-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .terminal-tab-btn.active, .terminal-tab-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+    }
+
+    .terminal-body {
+      padding: 24px;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: #CBD5E1;
+      min-height: 340px;
+      overflow-x: auto;
+    }
+
+    .term-prompt { color: var(--primary); }
+    .term-cmd { color: #f8fafc; font-weight: 600; }
+    .term-banner { color: #38bdf8; font-weight: 500; white-space: pre; }
+    .term-info { color: #94A3B8; }
+    .term-success { color: var(--success); font-weight: 500; }
+    .term-accent { color: var(--indigo); }
+    .term-klority { color: var(--primary); font-weight: 600; }
+
+    /* Bento Grid */
+    .section {
+      padding: 100px 0;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-tag {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .section-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 1.15rem;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .bento-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px;
+      position: relative;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .bento-card:hover {
+      border-color: rgba(20, 184, 166, 0.3);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .bento-card.col-span-2 {
+      grid-column: span 2;
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: rgba(20, 184, 166, 0.1);
+      border: 1px solid rgba(20, 184, 166, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .bento-card h3 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .bento-card p {
+      color: var(--text-muted);
+      font-size: 0.98rem;
+      line-height: 1.6;
+    }
+
+    /* Comparison Matrix */
+    .matrix-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow-x: auto;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .matrix-table th, .matrix-table td {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+
+    .matrix-table th {
+      background: #0E121A;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .highlight-col {
+      background: rgba(20, 184, 166, 0.05);
+      border-left: 1px solid rgba(20, 184, 166, 0.2);
+      border-right: 1px solid rgba(20, 184, 166, 0.2);
+    }
+
+    .highlight-col-header {
+      background: rgba(20, 184, 166, 0.12) !important;
+      color: var(--primary) !important;
+      font-weight: 800 !important;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .status-badge.good { color: var(--success); }
+    .status-badge.bad { color: var(--danger); }
+    .status-badge.neutral { color: var(--text-muted); }
+
+    /* Code Examples Section */
+    .code-tabs-wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #090C12;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .code-tabs-nav {
+      display: flex;
+      align-items: center;
+      background: #11151F;
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+    }
+
+    .code-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 14px 20px;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.15s ease;
+    }
+
+    .code-tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .code-tab-btn.active {
+      color: var(--primary);
+    }
+
+    .code-tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+    }
+
+    .code-content-block {
+      padding: 24px;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      color: #E2E8F0;
+      overflow-x: auto;
+      display: none;
+    }
+
+    .code-content-block.active {
+      display: block;
+    }
+
+    pre code {
+      font-family: var(--font-mono);
+      line-height: 1.6;
+    }
+
+    /* Klority Spotlight Card */
+    .klority-spotlight {
+      background: linear-gradient(135deg, rgba(20, 184, 166, 0.12) 0%, rgba(99, 102, 241, 0.1) 100%);
+      border: 1px solid rgba(20, 184, 166, 0.3);
+      border-radius: 20px;
+      padding: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 40px;
+      margin-top: 60px;
+    }
+
+    .klority-spotlight-text h3 {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+      letter-spacing: -0.02em;
+    }
+
+    .klority-spotlight-text p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      max-width: 620px;
+      margin-bottom: 24px;
+    }
+
+    .btn-large-klority {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, var(--primary) 0%, #0d9488 100%);
+      color: #042f2e;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+
+    .btn-large-klority:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+    }
+
+    /* FAQ */
+    .faq-list {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    .faq-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .faq-question {
+      padding: 20px 24px;
+      font-weight: 600;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .faq-icon {
+      font-size: 1.2rem;
+      transition: transform 0.2s ease;
+      color: var(--text-dim);
+    }
+
+    .faq-item.open .faq-icon {
+      transform: rotate(45deg);
+      color: var(--primary);
+    }
+
+    .faq-answer {
+      display: none;
+      padding: 0 24px 20px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .faq-item.open .faq-answer {
+      display: block;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 60px 0 40px;
+      margin-top: 80px;
+      background: #080B10;
+    }
+
+    .footer-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .footer-desc {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      margin-top: 8px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.15s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--primary);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .hero h1 { font-size: 2.5rem; }
+      .bento-grid { grid-template-columns: 1fr; }
+      .bento-card.col-span-2 { grid-column: span 1; }
+      .klority-spotlight { flex-direction: column; text-align: center; padding: 32px; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-glow-top"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav-inner">
+      <a href="#" class="logo-group">
+        <div class="logo-icon">⚡</div>
+        <span class="logo-text">redis-local</span>
+        <span class="logo-badge">v1.0.0</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#comparison">Docker vs redis-local</a></li>
+        <li><a href="#code">BullMQ & Code</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="https://github.com/klority-io/redis-local" target="_blank" rel="noopener noreferrer" class="btn-github">
+          <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          Star on GitHub
+        </a>
+        <a href="https://www.klority.com" target="_blank" rel="noopener noreferrer" class="btn-klority">
+          by Klority 🚀
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge-wrap">
+        <span class="hero-badge-dot"></span>
+        <span>redis-local v1.0.0 is live on npm • Zero Docker Required</span>
+      </div>
+
+      <h1>
+        Instant Local Redis for<br>
+        <span class="gradient-text">Modern Developers.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Run a full-featured, zero-dependency Redis server in milliseconds. No Docker Desktop RAM hogging, no WSL2 virtualization, no C++ build tools. Pure Node.js & WebAssembly.
+      </p>
+
+      <!-- Command Box -->
+      <div class="command-box-wrap">
+        <div class="command-box" id="copyBox" onclick="copyCommand()">
+          <div class="command-text">
+            <span class="command-prompt">$</span>
+            <span id="cmdText">npx redis-local</span>
+          </div>
+          <button class="copy-btn" id="copyBtn" type="button" aria-label="Copy to clipboard">
+            <svg id="copyIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span id="copyLabel">Copy</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="platforms-list">
+        <div class="platform-item">
+          <span>⚡ Starts in &lt; 500ms</span>
+        </div>
+        <div>•</div>
+        <div class="platform-item">
+          <span>🪶 ~28MB Memory Footprint</span>
+        </div>
+        <div>•</div>
+        <div class="platform-item">
+          <span>🐂 Full BullMQ Support</span>
+        </div>
+        <div>•</div>
+        <div class="platform-item">
+          <span>🪟 Windows, macOS & Linux</span>
+        </div>
+      </div>
+
+      <!-- Live Terminal Preview -->
+      <div class="terminal-window">
+        <div class="terminal-header">
+          <div class="terminal-dots">
+            <div class="terminal-dot dot-red"></div>
+            <div class="terminal-dot dot-yellow"></div>
+            <div class="terminal-dot dot-green"></div>
+          </div>
+          <span class="terminal-title">bash — redis-local (127.0.0.1:6379)</span>
+          <div class="terminal-tabs">
+            <button class="terminal-tab-btn active" onclick="switchTermTab('boot')">Boot Log</button>
+            <button class="terminal-tab-btn" onclick="switchTermTab('bullmq')">BullMQ Queue</button>
+            <button class="terminal-tab-btn" onclick="switchTermTab('lua')">Lua Scripts</button>
+          </div>
+        </div>
+
+        <div class="terminal-body" id="termBody">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Section -->
+  <section class="section" id="comparison">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Comparison Matrix</span>
+        <h2 class="section-title">Why Developers Ditch Docker for redis-local</h2>
+        <p class="section-desc">
+          Compare redis-local against Docker Desktop, WSL2 virtual machines, and legacy Windows binaries.
+        </p>
+      </div>
+
+      <div class="matrix-wrap">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>Feature / Metric</th>
+              <th class="highlight-col highlight-col-header">⚡ redis-local</th>
+              <th>🐳 Docker Desktop</th>
+              <th>🐧 WSL2 / Linux VM</th>
+              <th>📦 MSOpenTech (Archived)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Startup Time</strong></td>
+              <td class="highlight-col"><span class="status-badge good">⚡ &lt; 500 ms</span></td>
+              <td><span class="status-badge bad">⏳ 15 – 45 seconds</span></td>
+              <td><span class="status-badge neutral">⏱️ 5 – 15 seconds</span></td>
+              <td><span class="status-badge neutral">⏱️ 1 – 2 seconds</span></td>
+            </tr>
+            <tr>
+              <td><strong>RAM Consumption</strong></td>
+              <td class="highlight-col"><span class="status-badge good">🪶 ~25 – 35 MB</span></td>
+              <td><span class="status-badge bad">🚨 2.5 GB – 4.5 GB</span></td>
+              <td><span class="status-badge bad">⚠️ 1.0 GB – 2.0 GB</span></td>
+              <td><span class="status-badge good">🪶 ~30 MB</span></td>
+            </tr>
+            <tr>
+              <td><strong>Installation Friction</strong></td>
+              <td class="highlight-col"><span class="status-badge good">✨ Zero (npx redis-local)</span></td>
+              <td><span class="status-badge bad">❌ 1.2 GB Installer + Engine</span></td>
+              <td><span class="status-badge bad">❌ WSL Kernel + Ubuntu Distro</span></td>
+              <td><span class="status-badge bad">❌ Manual ZIP extraction</span></td>
+            </tr>
+            <tr>
+              <td><strong>C++ Compilers Required</strong></td>
+              <td class="highlight-col"><span class="status-badge good">✅ None (Pure JS + Wasm)</span></td>
+              <td><span class="status-badge good">✅ None</span></td>
+              <td><span class="status-badge good">✅ None</span></td>
+              <td><span class="status-badge bad">❌ MS Visual Studio 2017</span></td>
+            </tr>
+            <tr>
+              <td><strong>Works on Locked Corporate Laptops</strong></td>
+              <td class="highlight-col"><span class="status-badge good">✅ 100% (No Admin Rights)</span></td>
+              <td><span class="status-badge bad">❌ Often Blocked by IT</span></td>
+              <td><span class="status-badge bad">❌ Hyper-V often disabled</span></td>
+              <td><span class="status-badge bad">❌ Security CVEs</span></td>
+            </tr>
+            <tr>
+              <td><strong>BullMQ & Lua Scripting</strong></td>
+              <td class="highlight-col"><span class="status-badge good">✅ Supported (Wasmoon Lua 5.4)</span></td>
+              <td><span class="status-badge good">✅ Supported</span></td>
+              <td><span class="status-badge good">✅ Supported</span></td>
+              <td><span class="status-badge bad">❌ Broken (Outdated Redis 3.x)</span></td>
+            </tr>
+            <tr>
+              <td><strong>CI/CD & Headless Testing</strong></td>
+              <td class="highlight-col"><span class="status-badge good">✅ Instant in GitHub Actions</span></td>
+              <td><span class="status-badge bad">⚠️ Slow Docker-in-Docker</span></td>
+              <td><span class="status-badge bad">❌ Unsupported</span></td>
+              <td><span class="status-badge bad">❌ Windows-only binary</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Bento Grid -->
+  <section class="section" id="features" style="background: rgba(14, 18, 26, 0.4);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Core Capabilities</span>
+        <h2 class="section-title">Everything You Need for Local Development</h2>
+        <p class="section-desc">
+          Built from the ground up to speak native RESP protocol and execute atomic Redis commands with WebAssembly.
+        </p>
+      </div>
+
+      <div class="bento-grid">
+        <div class="bento-card col-span-2">
+          <div>
+            <div class="card-icon">🐂</div>
+            <h3>Full BullMQ & Job Queue Compatibility</h3>
+            <p>
+              BullMQ relies heavily on atomic Lua scripts (`EVALSHA`, `EVAL`) to handle locks, token renewals, repeatable jobs, and delayed queues. `redis-local` embeds a real Lua 5.4 WebAssembly engine (`wasmoon`), allowing BullMQ to run flawlessly without crashes or missing commands.
+            </p>
+          </div>
+        </div>
+
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">⚡</div>
+            <h3>Sub-Second Boot Time</h3>
+            <p>
+              Boots in under 500ms directly on Node.js. Run it on-demand in npm scripts or leave it running in a background terminal.
+            </p>
+          </div>
+        </div>
+
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">🌊</div>
+            <h3>Redis Streams & Pub/Sub</h3>
+            <p>
+              Build real-time event-driven apps with full support for `XADD`, `XREAD`, `XRANGE`, `PUBLISH`, and `SUBSCRIBE`.
+            </p>
+          </div>
+        </div>
+
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">💾</div>
+            <h3>Auto-Persistence (AOF/RDB Lite)</h3>
+            <p>
+              Save your dataset to disk seamlessly with the `--save` flag. Saves atomic JSON state snapshots on shutdown and auto-restores on boot.
+            </p>
+          </div>
+        </div>
+
+        <div class="bento-card">
+          <div>
+            <div class="card-icon">🔌</div>
+            <h3>Universal Client Support</h3>
+            <p>
+              Connects with any Redis client: `ioredis`, `@redis/client`, Python's `redis-py`, Go's `go-redis`, or the official `redis-cli`.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Code Integration Section -->
+  <section class="section" id="code">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Easy Integration</span>
+        <h2 class="section-title">Drop into Your Existing Stack in Seconds</h2>
+        <p class="section-desc">
+          No code changes required. Point your application to `localhost:6379` and you're ready to code.
+        </p>
+      </div>
+
+      <div class="code-tabs-wrap">
+        <div class="code-tabs-nav">
+          <button class="code-tab-btn active" onclick="switchCodeTab('bullmq')">BullMQ Queue</button>
+          <button class="code-tab-btn" onclick="switchCodeTab('ioredis')">ioredis (Node.js)</button>
+          <button class="code-tab-btn" onclick="switchCodeTab('ci')">GitHub Actions CI</button>
+          <button class="code-tab-btn" onclick="switchCodeTab('package')">package.json Script</button>
+        </div>
+
+        <div class="code-content-block active" id="code-bullmq">
+<pre><code><span style="color:#64748B;">// 1. Start redis-local in your terminal: npx redis-local</span>
+<span style="color:#F43F5E;">import</span> { Queue, Worker } <span style="color:#F43F5E;">from</span> <span style="color:#10B981;">'bullmq'</span>;
+
+<span style="color:#64748B;">// 2. Connect directly to standard port 6379</span>
+<span style="color:#F43F5E;">const</span> connection = { host: <span style="color:#10B981;">'127.0.0.1'</span>, port: <span style="color:#F59E0B;">6379</span> };
+
+<span style="color:#F43F5E;">const</span> emailQueue = <span style="color:#F43F5E;">new</span> Queue(<span style="color:#10B981;">'emailQueue'</span>, { connection });
+
+<span style="color:#64748B;">// 3. Add jobs with delays or retries</span>
+<span style="color:#F43F5E;">await</span> emailQueue.add(<span style="color:#10B981;">'welcome-email'</span>, {
+  userId: <span style="color:#10B981;">'usr_942'</span>,
+  email: <span style="color:#10B981;">'alex@example.com'</span>
+}, { delay: <span style="color:#F59E0B;">2000</span> });
+
+<span style="color:#64748B;">// 4. Process jobs</span>
+<span style="color:#F43F5E;">const</span> worker = <span style="color:#F43F5E;">new</span> Worker(<span style="color:#10B981;">'emailQueue'</span>, <span style="color:#F43F5E;">async</span> (job) => {
+  console.log(<span style="color:#10B981;">`🚀 Processing job: ${job.id} for ${job.data.email}`</span>);
+}, { connection });</code></pre>
+        </div>
+
+        <div class="code-content-block" id="code-ioredis">
+<pre><code><span style="color:#F43F5E;">const</span> Redis = require(<span style="color:#10B981;">'ioredis'</span>);
+<span style="color:#F43F5E;">const</span> redis = <span style="color:#F43F5E;">new</span> Redis({ port: <span style="color:#F59E0B;">6379</span>, host: <span style="color:#10B981;">'127.0.0.1'</span> });
+
+<span style="color:#F43F5E;">async function</span> run() {
+  <span style="color:#F43F5E;">await</span> redis.set(<span style="color:#10B981;">'session:user_12'</span>, JSON.stringify({ name: <span style="color:#10B981;">'Sarah'</span>, role: <span style="color:#10B981;">'admin'</span> }), <span style="color:#10B981;">'EX'</span>, <span style="color:#F59E0B;">3600</span>);
+  <span style="color:#F43F5E;">const</span> user = <span style="color:#F43F5E;">await</span> redis.get(<span style="color:#10B981;">'session:user_12'</span>);
+  console.log(<span style="color:#10B981;">'Cached User:'</span>, JSON.parse(user));
+
+  <span style="color:#64748B;">// Pub/Sub</span>
+  redis.publish(<span style="color:#10B981;">'notifications'</span>, <span style="color:#10B981;">'Task completed successfully!'</span>);
+}
+run();</code></pre>
+        </div>
+
+        <div class="code-content-block" id="code-ci">
+<pre><code><span style="color:#64748B;"># .github/workflows/test.yml</span>
+<span style="color:#38BDF8;">name</span>: Unit & Integration Tests
+<span style="color:#38BDF8;">on</span>: [push, pull_request]
+
+<span style="color:#38BDF8;">jobs</span>:
+  <span style="color:#38BDF8;">test</span>:
+    <span style="color:#38BDF8;">runs-on</span>: ubuntu-latest
+    <span style="color:#38BDF8;">steps</span>:
+      - <span style="color:#38BDF8;">uses</span>: actions/checkout@v4
+      - <span style="color:#38BDF8;">uses</span>: actions/setup-node@v4
+        <span style="color:#38BDF8;">with</span>:
+          <span style="color:#38BDF8;">node-version</span>: 20
+      
+      <span style="color:#64748B;"># Start redis-local in background — no Docker daemon setup needed!</span>
+      - <span style="color:#38BDF8;">name</span>: Start redis-local
+        <span style="color:#38BDF8;">run</span>: npx redis-local --port 6379 &amp;
+      
+      - <span style="color:#38BDF8;">run</span>: npm ci
+      - <span style="color:#38BDF8;">run</span>: npm test</code></pre>
+        </div>
+
+        <div class="code-content-block" id="code-package">
+<pre><code><span style="color:#64748B;">// package.json</span>
+{
+  <span style="color:#38BDF8;">"scripts"</span>: {
+    <span style="color:#38BDF8;">"redis"</span>: <span style="color:#10B981;">"redis-local"</span>,
+    <span style="color:#38BDF8;">"dev"</span>: <span style="color:#10B981;">"concurrently \"redis-local\" \"next dev\""</span>
+  },
+  <span style="color:#38BDF8;">"devDependencies"</span>: {
+    <span style="color:#38BDF8;">"redis-local"</span>: <span style="color:#10B981;">"^1.0.0"</span>
+  }
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- Klority Ecosystem Banner -->
+      <div class="klority-spotlight">
+        <div class="klority-spotlight-text">
+          <h3>Maintained by Klority</h3>
+          <p>
+            At Klority, we build the unified engineering workspace that combines Jira, Confluence, and TestRail into one blazing-fast tool with native MCP AI agents. We created <code>redis-local</code> to eliminate dev friction for our team and the community.
+          </p>
+          <a href="https://www.klority.com" target="_blank" rel="noopener noreferrer" class="btn-large-klority">
+            Discover Klority Workspace
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="section" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Frequently Asked Questions</span>
+        <h2 class="section-title">Got Questions? We Have Answers.</h2>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item open">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Is redis-local meant for production?</span>
+            <span class="faq-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            <strong>No.</strong> <code>redis-local</code> is specifically engineered for local development, rapid prototyping, and automated CI test runs. For production systems, you should use standard Redis Enterprise, AWS ElastiCache, or Redis Cloud.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Does it work with BullMQ out of the box?</span>
+            <span class="faq-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            <strong>Yes!</strong> BullMQ requires atomic Lua scripts (like moving jobs between delayed, wait, and active sets). <code>redis-local</code> uses <code>wasmoon</code> (a WebAssembly-compiled Lua 5.4 engine) to provide atomic script execution with full <code>redis.call()</code> bindings.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Why not just use Docker Desktop?</span>
+            <span class="faq-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Docker Desktop requires WSL2 on Windows, consumes 2.5GB to 4.5GB of RAM just to keep the virtual machine alive, and is often blocked on corporate enterprise machines by IT policy. <code>redis-local</code> boots in under 500ms and uses only ~28MB of RAM.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>How does persistence work?</span>
+            <span class="faq-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            You can run <code>npx redis-local --save</code> or configure it in <code>redis-local.conf</code>. It snapshots your key-value pairs, hashes, sets, and streams into an atomic JSON dump file (<code>redis-dump.json</code>) upon shutdown or periodic intervals, restoring them when you boot back up.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Can I change the port or bind host?</span>
+            <span class="faq-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Yes! Just pass CLI arguments: <code>npx redis-local --port 6380 --host 0.0.0.0</code> or configure your password with <code>--requirepass secret123</code>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div>
+          <a href="#" class="logo-group">
+            <div class="logo-icon" style="width:28px;height:28px;font-size:14px;">⚡</div>
+            <span class="logo-text">redis-local</span>
+          </a>
+          <p class="footer-desc">
+            Ultra-lightweight Redis replacement for local development, testing & CI.
+          </p>
+        </div>
+
+        <ul class="footer-links">
+          <li><a href="https://github.com/klority-io/redis-local" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="https://www.npmjs.com/package/redis-local" target="_blank" rel="noopener noreferrer">npm</a></li>
+          <li><a href="https://www.klority.com" target="_blank" rel="noopener noreferrer">Klority Workspace</a></li>
+          <li><a href="https://github.com/klority-io/redis-local/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-bottom">
+        <div>Released under the MIT License • Built & Maintained by <a href="https://www.klority.com" style="color:var(--primary);text-decoration:none;font-weight:600;">Klority</a></div>
+        <div>Not affiliated with Redis Ltd. Redis is a registered trademark of Redis Ltd.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Copy Command Functionality
+    function copyCommand() {
+      const cmd = document.getElementById('cmdText').innerText;
+      navigator.clipboard.writeText(cmd).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const label = document.getElementById('copyLabel');
+        btn.classList.add('copied');
+        label.innerText = 'Copied!';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          label.innerText = 'Copy';
+        }, 2000);
+      });
+    }
+
+    // Terminal Tabs Simulation
+    const termLogs = {
+      boot: `
+<span class="term-prompt">$</span> <span class="term-cmd">npx redis-local</span>
+<span class="term-banner">
+                _._                                                  
+           _.-""${'\\'.repeat(3)}""-._                                          
+      _.-""${'\\'.repeat(6)}""-._        redis-local v1.0.0                 
+ .-"${'\\'.repeat(9)}"-._     Port: 6379                             
+|${'\\'.repeat(12)}|    PID:  41982                              
+|${'\\'.repeat(12)}|                                                 
+|${'\\'.repeat(12)}|    Zero-dependency Redis replacement            
+ '-._${'\\'.repeat(9)}_.-'    Maintained by <span class="term-klority">Klority (https://www.klority.com)</span>  
+     '-._${'\\'.repeat(6)}_.-'    Ready to accept connections                  
+         '-._${'\\'.repeat(3)}_.-'                                                   
+             \`-.\`                                                   
+</span>
+<span class="term-info">[Server]</span> Listening on <span class="term-success">127.0.0.1:6379</span> (standalone mode)
+<span class="term-info">[Engine]</span> WebAssembly Lua scripting engine initialized (wasmoon Lua 5.4)
+<span class="term-info">[Client]</span> Client connected: <span class="term-accent">127.0.0.1:54912</span>
+<span class="term-prompt">></span> <span class="term-cmd">PING</span> -> <span class="term-success">+PONG</span> <span class="term-info">(0.12ms)</span>
+<span class="term-prompt">></span> <span class="term-cmd">SET user:session '{"uid": 101, "role": "admin"}' EX 3600</span> -> <span class="term-success">+OK</span>
+<span class="term-prompt">></span> <span class="term-cmd">GET user:session</span> -> <span class="term-info">"{\"uid\": 101, \"role\": \"admin\"}"</span>
+`,
+      bullmq: `
+<span class="term-prompt">$</span> <span class="term-cmd">node queue-worker.js</span>
+<span class="term-info">[BullMQ]</span> Initializing Queue 'email-notifications'...
+<span class="term-info">[BullMQ]</span> Running atomic Lua script: moveToActive via EVALSHA (Wasm)
+<span class="term-success">✔</span> Job #1 'send-welcome-email' added to active queue
+<span class="term-info">[Worker]</span> Processing job data: { to: 'alex@klority.com', template: 'welcome' }
+<span class="term-success">✔</span> Completed job #1 in 42ms
+<span class="term-info">[BullMQ]</span> Running atomic Lua script: moveToFinished
+<span class="term-prompt">></span> <span class="term-cmd">LLEN bull:email-notifications:completed</span> -> <span class="term-success">(integer) 1</span>
+`,
+      lua: `
+<span class="term-prompt">$</span> <span class="term-cmd">redis-cli EVAL "return redis.call('set', KEYS[1], ARGV[1])" 1 mykey "hello wasm"</span>
+<span class="term-info">[Engine]</span> Compiling Lua script via Wasmoon WebAssembly sandbox...
+<span class="term-success">+OK</span>
+<span class="term-prompt">$</span> <span class="term-cmd">redis-cli EVAL "return redis.call('get', KEYS[1])" 1 mykey</span>
+<span class="term-info">"hello wasm"</span>
+`
+    };
+
+    function switchTermTab(tab) {
+      document.querySelectorAll('.terminal-tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('termBody').innerHTML = termLogs[tab];
+    }
+
+    // Code Tabs Switching
+    function switchCodeTab(tab) {
+      document.querySelectorAll('.code-tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.code-content-block').forEach(block => block.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('code-' + tab).classList.add('active');
+    }
+
+    // FAQ Accordion
+    function toggleFaq(el) {
+      const item = el.parentElement;
+      item.classList.toggle('open');
+    }
+
+    // Initialize Default Terminal Tab
+    document.getElementById('termBody').innerHTML = termLogs.boot;
+  </script>
+</body>
+</html>
